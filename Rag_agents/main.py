@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from Rag_agents.graph_builder import build_graph
 from Rag_agents.schemas.pydantic_schema import OverallState
 
-app = FastAPI()
+app = FastAPI(title="Your Content Creator Assistant")
 
 class ChatRequest(BaseModel):
     topic: str
