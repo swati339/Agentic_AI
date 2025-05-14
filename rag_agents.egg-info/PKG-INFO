@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: rag-agents
+Version: 0.1.0
+Summary: Add your description here
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: colorlog>=6.9.0
+Requires-Dist: dotenv>=0.9.9
+Requires-Dist: fastapi>=0.115.12
+Requires-Dist: ipykernel>=6.29.5
+Requires-Dist: langchain-community>=0.3.23
+Requires-Dist: langchain-openai>=0.3.16
+Requires-Dist: langgraph>=0.4.3
+Requires-Dist: nest-asyncio>=1.6.0
+Requires-Dist: pydantic>=2.11.4
+Requires-Dist: pyppeteer>=2.0.0
+Requires-Dist: uvicorn>=0.34.2

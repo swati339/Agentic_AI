@@ -1,0 +1,32 @@
+version: '3.9'
+
+services:
+  fastapi-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.fastapi  
+    container_name: fastapi-container
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      SERPAPI_API_KEY: ${SERPAPI_API_KEY}
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
+    command: ["uvicorn", "Rag_agents.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+
+  gradio-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.gradio  
+    container_name: gradio-container
+    ports:
+      - "7860:7860"
+    volumes:
+      - .:/app
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      SERPAPI_API_KEY: ${SERPAPI_API_KEY}
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
+    command: ["python", "Rag_agents/gradio_app.py"]

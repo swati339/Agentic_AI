@@ -1,0 +1,11 @@
+colorlog>=6.9.0
+dotenv>=0.9.9
+fastapi>=0.115.12
+ipykernel>=6.29.5
+langchain-community>=0.3.23
+langchain-openai>=0.3.16
+langgraph>=0.4.3
+nest-asyncio>=1.6.0
+pydantic>=2.11.4
+pyppeteer>=2.0.0
+uvicorn>=0.34.2

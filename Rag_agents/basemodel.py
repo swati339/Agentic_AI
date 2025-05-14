@@ -6,9 +6,9 @@ class OverallState(TypedDict):
     llm_output: str
     script: str
     video: str
-    voice_over: str
     search_results: str
     hashtags: str
+    next_route: str
 
 class BaseNode(ABC):
     @abstractmethod

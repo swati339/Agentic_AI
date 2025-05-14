@@ -1,0 +1,33 @@
+# Use a base image with Python and uv pre-installed
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Set env variables
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV UV_VENV=.venv
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Install dependencies without installing the project
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
+
+# Copy the full source code into the container
+ADD . /app
+
+# Now install the project in editable mode
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install -e .
+
+# Expose the port used by the FastAPI app
+EXPOSE 8080
+
+# Clear entrypoint and define the default command
+ENTRYPOINT []
+
+# Run the FastAPI app with live-reloading and external accessibility
+CMD ["uvicorn", "Rag_agents.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]

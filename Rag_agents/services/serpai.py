@@ -1,20 +1,34 @@
 import requests
 from Rag_agents.configs.config import SERPAPI_API_KEY
-from Rag_agents.schemas.pydantic_schema import OverallState
-from Rag_agents.basemodel import BaseNode
+from Rag_agents.basemodel import BaseNode, OverallState
+from Rag_agents.configs.logging_config import setup_logging
+import logging
+import os
+from dotenv import load_dotenv
+import json
+
+load_dotenv()
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 class SerpAPINode(BaseNode):
+    def __init__(self):
+        super().__init__()
+        self.api_key = os.getenv("SERPAPI_API_KEY")
+
     def run(self, state: OverallState) -> OverallState:
-        topic = state.topic
+        topic = state["topic"]
 
         params = {
             "engine": "google",
             "q": topic + " trends",
-            "api_key": SERPAPI_API_KEY
+            "api_key": self.api_key
         }
 
         try:
             response = requests.get("https://serpapi.com/search", params=params)
+            response.raise_for_status()
             data = response.json()
 
             snippets = []
@@ -22,6 +36,7 @@ class SerpAPINode(BaseNode):
                 for result in data["organic_results"]:
                     if "snippet" in result:
                         snippets.append(result["snippet"])
+                        logger.info("Displayed the organic results.")
 
             hashtags = []
             for snippet in snippets:
@@ -42,7 +57,9 @@ class SerpAPINode(BaseNode):
         print(f"[SerpAPI] Hashtags: {hashtags}")
         print(f"[SerpAPI] Snippets:\n{search_results_text}")
 
-        return state.copy(update={
-            "hashtags": ", ".join(hashtags),
-            "search_results": search_results_text
-        })
+        # Update state dictionary directly
+        state["hashtags"] = ", ".join(hashtags)
+        state["search_results"] = search_results_text
+        logger.info(f"Intermediate step after serpaip {json.dumps(state, indent=2)}")
+
+        return state  # Return the updated state
