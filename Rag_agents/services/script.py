@@ -1,15 +1,28 @@
 from Rag_agents.basemodel import BaseNode, OverallState
+from Rag_agents.configs.logging_config import setup_logging
+import logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
+
 
 class ScriptNode(BaseNode):
     def run(self, state: OverallState) -> OverallState:
-        script = f"""Script for topic '{state['topic']}':
-{state['llm_output']}
+        topic = state.get("topic", "N/A")
+        llm_output = state.get("llm_output", "")
+        hashtags = state.get("hashtags", "")
 
-Trending Hashtags: {state['hashtags']}
+        script = f"""Script for topic '{topic}':
+{llm_output}
+
+Trending Hashtags: {hashtags}
 """
-        print(f"[Script Node]\n{script}")
-        
+
+        logger.info("[ScriptNode] Generated script for topic: %s", topic)
+        logger.debug("[ScriptNode] Script content:\n%s", script)
+
         # Update state dictionary directly
         state["script"] = script
-        
-        return state  # Return the updated state
+        logger.info("[ScriptNode] Updated state with script.")
+
+        return state  # Returns the updated state
