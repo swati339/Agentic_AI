@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import TypedDict
 
+
 class OverallState(TypedDict):
     topic: str
     llm_output: str
@@ -9,6 +10,7 @@ class OverallState(TypedDict):
     search_results: str
     hashtags: str
     next_route: str
+
 
 class BaseNode(ABC):
     @abstractmethod
