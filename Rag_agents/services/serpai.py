@@ -12,6 +12,7 @@ load_dotenv()
 setup_logging()
 logger = logging.getLogger(__name__)
 
+
 class SerpAPINode(BaseNode):
     def __init__(self):
         super().__init__()
@@ -19,14 +20,14 @@ class SerpAPINode(BaseNode):
 
     def run(self, state: OverallState) -> OverallState:
         topic = state["topic"]
+        logger.info("[SerpAPINode] Received topic: %s", topic)
 
-        params = {
-            "engine": "google",
-            "q": topic + " trends",
-            "api_key": self.api_key
-        }
+        params = {"engine": "google", "q": topic + " trends", "api_key": self.api_key}
 
         try:
+            logger.info(
+                "[SerpAPINode] Sending request to SerpAPI with params: %s", params
+            )
             response = requests.get("https://serpapi.com/search", params=params)
             response.raise_for_status()
             data = response.json()
@@ -36,13 +37,20 @@ class SerpAPINode(BaseNode):
                 for result in data["organic_results"]:
                     if "snippet" in result:
                         snippets.append(result["snippet"])
-                        logger.info("Displayed the organic results.")
+                logger.info(
+                    "[SerpAPINode] Extracted %d snippets from organic results.",
+                    len(snippets),
+                )
+            else:
+                logger.warning(
+                    "[SerpAPINode] No 'organic_results' found in SerpAPI response."
+                )
 
             hashtags = []
             for snippet in snippets:
                 words = snippet.lower().split()
                 for word in words:
-                    clean = ''.join(filter(str.isalpha, word))
+                    clean = "".join(filter(str.isalpha, word))
                     if clean and len(clean) > 4:
                         hashtags.append(f"#{clean}")
 
@@ -50,16 +58,15 @@ class SerpAPINode(BaseNode):
             search_results_text = "\n".join(snippets)
 
         except Exception as e:
-            print(f"[SerpAPI Error] {e}")
+            logger.error("[SerpAPINode] SerpAPI error occurred: %s", str(e))
             hashtags = []
             search_results_text = ""
 
-        print(f"[SerpAPI] Hashtags: {hashtags}")
-        print(f"[SerpAPI] Snippets:\n{search_results_text}")
+        logger.info("[SerpAPINode] Generated hashtags: %s", hashtags)
+        logger.info("[SerpAPINode] Combined snippet text:\n%s", search_results_text)
 
-        # Update state dictionary directly
         state["hashtags"] = ", ".join(hashtags)
         state["search_results"] = search_results_text
-        logger.info(f"Intermediate step after serpaip {json.dumps(state, indent=2)}")
+        logger.info("[SerpAPINode] Updated state:\n%s", json.dumps(state, indent=2))
 
-        return state  # Return the updated state
+        return state  # return updated state.
