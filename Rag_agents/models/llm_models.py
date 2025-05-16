@@ -1,75 +1,84 @@
 import json
-from langchain_openai import ChatOpenAI
-from Rag_agents.prompts.prompt_templates import SystemPrompts
-from Rag_agents.basemodel import BaseNode, OverallState
-from Rag_agents.configs.logging_config import setup_logging
 import logging
+from langchain_openai import ChatOpenAI
+from Rag_agents.basemodel import BaseNode, OverallState
 from dotenv import load_dotenv
+from Rag_agents.configs.logging_config import setup_logging
 
-
+# Setup
 load_dotenv()
 setup_logging()
 logger = logging.getLogger(__name__)
 
 
-class LLMReasoningNode(BaseNode): 
+class LLMReasoningNode(BaseNode):
     def __init__(self):
         self.llm_model = ChatOpenAI(model="gpt-4o-mini")
-        self.system_prompts = SystemPrompts()
 
     def run(self, state: OverallState) -> OverallState:
-        topic = state["topic"]
-        logger.info("[LLMReasoningNode] Received topic: %s", topic)
+        if not state.get("steps_generated", False):
+            logger.warning(
+                "[LLMReasoningNode] Steps not generated yet. Skipping execution."
+            )
+            state["next_route"] = "complete"
+            return state
 
-        prompt_str = (
-            "You are a routing assistant.\n"
-            "Given the user prompt, identify which tool to use next.\n"
-            "Choose only one intent per turn from: 'Hashtag_gen', 'Script Generation', 'Video Generation', or 'None'.\n"
-            "Respond strictly in JSON:\n"
-            '{ "intent": "<intent>", "content": "<your generated content>" }\n\n'
-            f"User prompt: {topic}"
+        steps = state.get("steps", [])
+        index = state.get("current_step_index", 0)
+
+        if index >= len(steps):
+            logger.info("[LLMReasoningNode] No more steps. Finishing.")
+            state["next_route"] = "complete"
+            return state
+
+        current_step = steps[index]
+        user_input = state.get("topic", "")
+        logger.info(
+            "[LLMReasoningNode] Executing step %d/%d: %s",
+            index + 1,
+            len(steps),
+            current_step,
         )
 
-        response = self.llm_model.invoke(prompt_str)
-        logger.info("[LLMReasoningNode] Raw LLM Response:\n%s", response.content)
+        prompt_str = (
+            f"You are completing the step: {current_step} for the following user request.\n"
+            "Generate only the relevant content for this step. Respond strictly in JSON like:\n"
+            '{ "content": "<your generated output for this step>" }\n\n'
+            f"User prompt: {user_input}"
+        )
 
         try:
-            parsed = json.loads(response.content.strip())
-            intent = parsed.get("intent", "").strip()
-            content = parsed.get("content", "").strip()
+            response = self.llm_model.invoke(prompt_str)
+            logger.info("[LLMReasoningNode] LLM Response:\n%s", response.content)
 
-            logger.info("[LLMReasoningNode] Parsed Intent: %s", intent)
-            logger.info("[LLMReasoningNode] Parsed Content: %s", content)
-
-            if intent == "Hashtag_gen":
-                if not state.get("hashtags"):
-                    state["llm_output"] = content  
-                    state["next_route"] = "Hashtag_gen"
-                else:
-                    state["next_route"] = "complete"
-
-            elif intent == "Script Generation":
-                if not state.get("script"):
-                    state["script"] = content
-                    state["next_route"] = "Script Generation"
-                else:
-                    state["next_route"] = "complete"
-
-            elif intent == "Video Generation":
-                if not state.get("video"):
-                    state["video"] = content
-                    state["next_route"] = "Video Generation"
-                else:
-                    state["next_route"] = "complete"
-
+            if isinstance(response.content, str):
+                parsed = json.loads(response.content.strip())
+            elif isinstance(response.content, dict):
+                parsed = response.content
             else:
-                logger.info("[LLMReasoningNode] LLM chose to complete the process.")
-                state["next_route"] = "complete"
+                raise ValueError("Unexpected response content type")
 
-        except json.JSONDecodeError as e:
-            logger.warning("[LLMReasoningNode] JSON parsing failed: %s", e)
-            state["llm_output"] = response.content.strip()
+            content = parsed.get("content", {})
+
+            # Handle current step specifically
+            if current_step == "Script Generation":
+                state["video_concept"] = content
+            elif current_step == "Hashtag_gen":
+                state["hashtags"] = content if isinstance(content, list) else [content]
+            elif current_step == "Video Generation":
+                state["shoot_locations"] = content
+
+            # Next step handling
+            state["current_step_index"] += 1
+            state["next_route"] = (
+                state["steps"][state["current_step_index"]]
+                if state["current_step_index"] < len(state["steps"])
+                else "complete"
+            )
+
+        except Exception as e:
+            logger.warning("[LLMReasoningNode] Failed to parse LLM output: %s", e)
             state["next_route"] = "complete"
 
-        logger.info("[LLMReasoningNode] Final State after reasoning: %s", state)
         return state
+
