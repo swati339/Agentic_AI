@@ -10,6 +10,9 @@ class OverallState(TypedDict):
     search_results: str
     hashtags: str
     next_route: str
+    steps: list[str]
+    current_step_index: int
+    steps_generated: bool
 
 
 class BaseNode(ABC):
