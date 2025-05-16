@@ -16,7 +16,7 @@ class VideoNode(BaseNode):
 Script:
 '{state["script"]}'
 
-Output should describe the video format, pacing, shots, and any visual ideas. Include hashtag ideas if relevant."""
+Output should describe the video format, pacing, shots, and any visual ideas. Donot include hashtags."""
 
         response = llm_model.invoke(prompt)
         print(f"[Video Node]\n{response.content}")
