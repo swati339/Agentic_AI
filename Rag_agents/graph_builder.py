@@ -4,19 +4,26 @@ from Rag_agents.models.llm_models import LLMReasoningNode
 from Rag_agents.services.serpai import SerpAPINode
 from Rag_agents.services.script import ScriptNode
 from Rag_agents.services.video import VideoNode
+from Rag_agents.models.state_breakdown import StepBreakdownNode
 
 
 def build_graph():
     builder = StateGraph(OverallState)
 
     # Add nodes
+    builder.add_node("Step Breakdown", StepBreakdownNode().run)
     builder.add_node("LLM Reasoning", LLMReasoningNode().run)
     builder.add_node("Hashtag_gen", SerpAPINode().run)
     builder.add_node("Script Generation", ScriptNode().run)
     builder.add_node("Video Generation", VideoNode().run)
 
-    builder.add_edge(START, "LLM Reasoning")
+    # Entry point changed to Step Breakdown
+    builder.set_entry_point("Step Breakdown")
 
+    #  Step Breakdown → LLM Reasoning
+    builder.add_edge("Step Breakdown", "LLM Reasoning")
+
+    # Conditional routing from LLM Reasoning
     def route_selector(state: OverallState) -> str:
         return state.get("next_route", "complete")
 
@@ -31,7 +38,7 @@ def build_graph():
         },
     )
 
-    # Return to LLM after tool execution
+    # Tool outputs go back to LLM Reasoning for next step decision
     builder.add_edge("Hashtag_gen", "LLM Reasoning")
     builder.add_edge("Script Generation", "LLM Reasoning")
     builder.add_edge("Video Generation", "LLM Reasoning")
