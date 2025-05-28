@@ -10,6 +10,7 @@ class StepBreakdownNode(BaseNode):
     """
     This node analyzes a user prompt and breaks it into a sequence of high-level tasks
     selected from a fixed set: Hashtag_gen, Script Generation, Video Generation.
+    After breaking down the user prompt, the llm decides which tool to call and processes according to that.
     """
 
     def __init__(self):
@@ -34,6 +35,7 @@ class StepBreakdownNode(BaseNode):
             "You are an AI workflow planner. Based on the user prompt below, "
             "break the task into 2–5 high-level steps.\n"
             "The steps must be selected from the following: Hashtag_gen, Script Generation, Video Generation.\n"
+            "Select tools based on user prompt. Donot generate always generate all while asking for only one.\n"
             "Respond only with a JSON list of strings, for example:\n"
             '["Hashtag_gen", "Script Generation", "Video Generation"]\n\n'
             f"User prompt: {user_prompt}"
